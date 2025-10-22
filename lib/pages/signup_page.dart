@@ -1,53 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'signup_page.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _SignUpPageState extends State<SignUpPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _confirm = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  bool _obscure = true;
+  bool _obscure1 = true;
+  bool _obscure2 = true;
   bool _loading = false;
-  String? _authError;
+  String? _error;
 
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
+    _confirm.dispose();
     super.dispose();
-  }
-
-  Future<void> _signIn() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _loading = true;
-      _authError = null;
-    });
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _email.text.trim(),
-        password: _password.text,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Login realizado com sucesso')),
-        );
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() => _authError = e.message ?? 'Falha na autenticação.');
-    } catch (e) {
-      setState(() => _authError = 'Erro inesperado: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
   }
 
   String? _validateEmail(String? v) {
@@ -64,12 +41,49 @@ class _LoginPageState extends State<LoginPage> {
     return null;
   }
 
+  String? _validateConfirm(String? v) {
+    if (v == null || v.isEmpty) return 'Confirme sua senha';
+    if (v != _password.text) return 'As senhas não coincidem';
+    return null;
+  }
+
+  Future<void> _createAccount() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _email.text.trim(),
+        password: _password.text,
+      );
+
+      await FirebaseAuth.instance.signOut();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Conta criada! Faça login para continuar.'),
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() => _error = e.message ?? 'Falha ao criar conta.');
+    } catch (e) {
+      setState(() => _error = 'Erro inesperado: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final padding = MediaQuery.of(context).size.width > 500 ? 32.0 : 16.0;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: const Text('Criar conta')),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
@@ -77,8 +91,8 @@ class _LoginPageState extends State<LoginPage> {
             padding: EdgeInsets.all(padding),
             child: Form(
               key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: ListView(
+                shrinkWrap: true,
                 children: [
                   const FlutterLogo(size: 64),
                   const SizedBox(height: 24),
@@ -106,24 +120,42 @@ class _LoginPageState extends State<LoginPage> {
                       suffixIcon: IconButton(
                         onPressed: _loading
                             ? null
-                            : () => setState(() => _obscure = !_obscure),
+                            : () => setState(() => _obscure1 = !_obscure1),
                         icon: Icon(
-                          _obscure ? Icons.visibility : Icons.visibility_off,
+                          _obscure1 ? Icons.visibility : Icons.visibility_off,
                         ),
-                        tooltip: _obscure ? 'Mostrar senha' : 'Ocultar senha',
                       ),
                     ),
-                    obscureText: _obscure,
-                    autofillHints: const [AutofillHints.password],
+                    obscureText: _obscure1,
+                    autofillHints: const [AutofillHints.newPassword],
                     validator: _validatePassword,
                     enabled: !_loading,
                   ),
                   const SizedBox(height: 12),
-                  if (_authError != null)
+                  TextFormField(
+                    controller: _confirm,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmar senha',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        onPressed: _loading
+                            ? null
+                            : () => setState(() => _obscure2 = !_obscure2),
+                        icon: Icon(
+                          _obscure2 ? Icons.visibility : Icons.visibility_off,
+                        ),
+                      ),
+                    ),
+                    obscureText: _obscure2,
+                    validator: _validateConfirm,
+                    enabled: !_loading,
+                  ),
+                  const SizedBox(height: 12),
+                  if (_error != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: Text(
-                        _authError!,
+                        _error!,
                         style: const TextStyle(color: Colors.red),
                         textAlign: TextAlign.center,
                       ),
@@ -131,29 +163,22 @@ class _LoginPageState extends State<LoginPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: _loading ? null : _signIn,
+                      onPressed: _loading ? null : _createAccount,
                       icon: _loading
                           ? const SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.login),
-                      label: Text(_loading ? 'Entrando...' : 'Entrar'),
+                          : const Icon(Icons.person_add),
+                      label: Text(_loading ? 'Criando...' : 'Criar conta'),
                     ),
                   ),
-                  const SizedBox(height: 8),
                   TextButton(
                     onPressed: _loading
                         ? null
-                        : () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const SignUpPage(),
-                              ),
-                            );
-                          },
-                    child: const Text('Criar conta'),
+                        : () => Navigator.of(context).pop(),
+                    child: const Text('Voltar ao login'),
                   ),
                 ],
               ),
