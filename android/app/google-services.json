@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "371631480803",
+    "project_id": "workout-master-78352",
+    "storage_bucket": "workout-master-78352.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:371631480803:android:2b8402c4a887610a408ad6",
+        "android_client_info": {
+          "package_name": "com.example.workout_master"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlAWe9p86Eex8dFTdxMs7UZ57at_yZi3w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
